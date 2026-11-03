@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('购物车')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('cart')}"></nav>
+
+<div class="container">
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="card">
+        <div class="card-title">
+            <span>🛍 我的购物车</span>
+            <span class="muted" style="font-size: 14px; font-weight: 400;"
+                  th:if="${!items.isEmpty()}"
+                  th:text="'共 ' + ${#lists.size(items)} + ' 种商品'">共 0 种商品</span>
+        </div>
+
+        <div th:if="${!items.isEmpty()}">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th style="width: 60px;">图片</th>
+                    <th>菜品</th>
+                    <th>口味</th>
+                    <th>单价</th>
+                    <th style="width: 140px;">数量</th>
+                    <th>小计</th>
+                    <th style="width: 90px;">操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="it : ${items}">
+                    <td style="font-size: 28px;" th:text="${it.dish.imageEmoji}">🍜</td>
+                    <td>
+                        <a th:href="@{/dish/{id}(id=${it.dish.id})}" class="fw-700"
+                           th:text="${it.dish.name}">菜名</a>
+                        <div class="meta-small" th:if="${it.dish.stock < it.quantity}"
+                             style="color: var(--danger);"
+                             th:text="'库存仅剩 ' + ${it.dish.stock} + ' 份'">库存提示</div>
+                    </td>
+                    <td>
+                        <span class="tag tag-orange" th:if="${it.taste != null}" th:text="${it.taste}">口味</span>
+                        <span class="muted" th:if="${it.taste == null}">-</span>
+                    </td>
+                    <td th:text="'¥' + ${#numbers.formatDecimal(it.dish.price,1,2)}">¥18.00</td>
+                    <td>
+                        <form th:action="@{/cart/update}" method="post" class="flex-center gap-8">
+                            <input type="hidden" name="itemId" th:value="${it.id}">
+                            <input type="number" name="quantity" class="form-control"
+                                   th:value="${it.quantity}" min="1" style="width: 76px; padding: 6px 8px;">
+                            <button type="submit" class="btn btn-outline btn-sm">更新</button>
+                        </form>
+                    </td>
+                    <td class="fw-700" style="color: var(--primary);"
+                        th:text="'¥' + ${#numbers.formatDecimal(it.subtotal,1,2)}">¥18.00</td>
+                    <td>
+                        <form th:action="@{/cart/remove}" method="post">
+                            <input type="hidden" name="itemId" th:value="${it.id}">
+                            <button type="submit" class="btn btn-danger btn-sm">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <div class="total-bar">
+                <div>
+                    <form th:action="@{/cart/clear}" method="post" class="inline-form"
+                          onsubmit="return confirm('确定清空购物车吗？')">
+                        <button type="submit" class="btn btn-outline btn-sm">清空购物车</button>
+                    </form>
+                </div>
+                <div class="flex-center gap-12">
+                    <span>合计：<span class="amount" th:text="'¥' + ${#numbers.formatDecimal(total,1,2)}">¥0.00</span></span>
+                    <a th:href="@{/orders/checkout}" class="btn btn-primary btn-lg">去结算</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="empty" th:if="${items.isEmpty()}">
+            <span class="emoji">🛍</span>
+            <div>购物车还是空的</div>
+            <a th:href="@{/menu}" class="btn btn-primary mt-16">去点餐</a>
+        </div>
+    </div>
+
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

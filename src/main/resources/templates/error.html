@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('出错了')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('')}"></nav>
+
+<div class="auth-wrap">
+    <div class="auth-card" style="max-width: 480px; text-align: center;">
+        <div style="font-size: 52px; margin-bottom: 10px;">😵</div>
+        <div style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">操作未完成</div>
+        <div class="alert alert-error"
+             th:text="${message != null ? message : (error != null ? error : '发生了未知错误')}">错误信息</div>
+        <div class="flex gap-12" style="justify-content: center;">
+            <a th:href="@{/menu}" class="btn btn-primary">返回菜单</a>
+            <a href="javascript:history.back()" class="btn btn-outline">返回上一页</a>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

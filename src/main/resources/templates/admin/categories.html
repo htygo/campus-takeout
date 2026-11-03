@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('分类管理')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('admin')}"></nav>
+
+<div class="container">
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="admin-grid">
+        <div th:replace="~{admin/admin-layout :: side('categories')}"></div>
+
+        <div>
+            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 18px;">📂 分类管理</h2>
+
+            <div class="card">
+                <div class="card-title">新增分类</div>
+                <form th:action="@{/admin/categories/save}" method="post" class="flex gap-8"
+                      style="flex-wrap: wrap;">
+                    <input type="text" name="name" class="form-control" required
+                           placeholder="分类名称" style="flex: 1; min-width: 160px;">
+                    <input type="number" name="sortOrder" class="form-control" value="0"
+                           placeholder="排序号" style="width: 110px;">
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>分类名称</th>
+                        <th style="width: 120px;">排序号</th>
+                        <th style="width: 120px;">操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="c : ${categories}">
+                        <td th:text="${c.id}">1</td>
+                        <td>
+                            <form th:action="@{/admin/categories/save}" method="post"
+                                  class="flex gap-8">
+                                <input type="hidden" name="id" th:value="${c.id}">
+                                <input type="text" name="name" class="form-control"
+                                       th:value="${c.name}" style="max-width: 220px;">
+                                <input type="number" name="sortOrder" class="form-control"
+                                       th:value="${c.sortOrder}" style="width: 90px;">
+                                <button type="submit" class="btn btn-outline btn-sm">保存</button>
+                            </form>
+                        </td>
+                        <td th:text="${c.sortOrder}">0</td>
+                        <td>
+                            <form th:action="@{/admin/categories/{id}/delete(id=${c.id})}"
+                                  method="post"
+                                  onsubmit="return confirm('确定删除该分类吗？')">
+                                <button type="submit" class="btn btn-danger btn-sm">删除</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="muted" th:if="${categories.isEmpty()}">还没有分类，先添加一个吧。</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

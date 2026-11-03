@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('菜品管理')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('admin')}"></nav>
+
+<div class="container">
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="admin-grid">
+        <div th:replace="~{admin/admin-layout :: side('dishes')}"></div>
+
+        <div>
+            <div class="flex-between mb-16">
+                <h2 style="font-size: 22px; font-weight: 800;">🍱 菜品管理</h2>
+                <a th:href="@{/admin/dishes/new}" class="btn btn-primary">+ 新增菜品</a>
+            </div>
+
+            <!-- 分类过滤 -->
+            <div class="filter-bar">
+                <a th:href="@{/admin/dishes}" th:classappend="${activeCategoryId == null} ? 'active' : ''">全部</a>
+                <a th:each="c : ${categories}"
+                   th:href="@{/admin/dishes(categoryId=${c.id})}"
+                   th:classappend="${activeCategoryId != null and activeCategoryId == c.id} ? 'active' : ''"
+                   th:text="${c.name}">分类</a>
+            </div>
+
+            <div class="card">
+                <table class="table" th:if="${!dishes.isEmpty()}">
+                    <thead>
+                    <tr>
+                        <th style="width: 50px;">图片</th>
+                        <th>菜品名称</th>
+                        <th>分类</th>
+                        <th>价格</th>
+                        <th>库存</th>
+                        <th>销量</th>
+                        <th>状态</th>
+                        <th style="width: 300px;">操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="d : ${dishes}">
+                        <td style="font-size: 26px;" th:text="${d.imageEmoji}">🍜</td>
+                        <td>
+                            <div class="fw-700" th:text="${d.name}">菜名</div>
+                            <div class="meta-small"
+                                 th:text="${d.description != null ? d.description : ''}">描述</div>
+                        </td>
+                        <td><span class="tag tag-orange" th:text="${d.category.name}">分类</span></td>
+                        <td class="fw-700" th:text="'¥' + ${#numbers.formatDecimal(d.price,1,2)}">¥0.00</td>
+                        <td>
+                            <span th:text="${d.stock}"
+                                  th:style="${d.stock <= 10} ? 'color: var(--danger); font-weight: 700;' : ''">0</span>
+                        </td>
+                        <td th:text="${d.sales}">0</td>
+                        <td>
+                            <span class="tag tag-green" th:if="${d.onSale}">在售</span>
+                            <span class="tag tag-gray" th:if="${!d.onSale}">已下架</span>
+                        </td>
+                        <td>
+                            <div class="flex gap-8" style="flex-wrap: wrap;">
+                                <a th:href="@{/admin/dishes/{id}/edit(id=${d.id})}"
+                                   class="btn btn-outline btn-sm">编辑</a>
+
+                                <form th:action="@{/admin/dishes/{id}/toggle(id=${d.id})}"
+                                      method="post" class="inline-form">
+                                    <button type="submit" class="btn btn-outline btn-sm"
+                                            th:text="${d.onSale} ? '下架' : '上架'">上架</button>
+                                </form>
+
+                                <form th:action="@{/admin/dishes/{id}/restock(id=${d.id})}"
+                                      method="post" class="inline-form flex-center"
+                                      style="gap: 4px;">
+                                    <input type="number" name="quantity" value="20" min="1"
+                                           class="form-control" style="width: 64px; padding: 5px 6px;">
+                                    <button type="submit" class="btn btn-outline btn-sm">补货</button>
+                                </form>
+
+                                <form th:action="@{/admin/dishes/{id}/delete(id=${d.id})}"
+                                      method="post" class="inline-form"
+                                      onsubmit="return confirm('确定删除该菜品吗？')">
+                                    <button type="submit" class="btn btn-danger btn-sm">删除</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="empty" th:if="${dishes.isEmpty()}">
+                    <span class="emoji">🍜️</span>
+                    <div>还没有菜品</div>
+                    <a th:href="@{/admin/dishes/new}" class="btn btn-primary mt-16">新增第一个菜品</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

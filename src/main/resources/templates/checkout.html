@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('确认订单')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('cart')}"></nav>
+
+<div class="container">
+
+    <div class="checkout-grid">
+
+        <!-- 左：收货信息 -->
+        <div>
+            <form th:action="@{/orders/create}" method="post">
+                <div class="card">
+                    <div class="card-title">📍 收货信息</div>
+
+                    <div class="form-group">
+                        <label>收货地址 <span style="color: var(--danger);">*</span></label>
+                        <input type="text" name="address" class="form-control" required
+                               th:value="${user.address}"
+                               placeholder="例如：东区学生公寓 3 号楼 201">
+                    </div>
+
+                    <div class="form-group">
+                        <label>联系电话 <span style="color: var(--danger);">*</span></label>
+                        <input type="text" name="phone" class="form-control" required
+                               th:value="${user.phone}"
+                               placeholder="例如：138 0000 0000">
+                    </div>
+
+                    <div class="form-group">
+                        <label>订单备注</label>
+                        <textarea name="remark" class="form-control" rows="2"
+                                  placeholder="例如：不要香菜、放门口即可"></textarea>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">🍱 商品清单</div>
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>菜品</th>
+                            <th>口味</th>
+                            <th class="text-center">数量</th>
+                            <th class="text-right">小计</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="it : ${items}">
+                            <td>
+                                <span th:text="${it.dish.imageEmoji}" style="margin-right: 6px;">🍜</span>
+                                <span class="fw-700" th:text="${it.dish.name}">菜名</span>
+                            </td>
+                            <td>
+                                <span class="tag tag-orange" th:if="${it.taste != null}" th:text="${it.taste}">口味</span>
+                                <span class="muted" th:if="${it.taste == null}">-</span>
+                            </td>
+                            <td class="text-center" th:text="${it.quantity}">1</td>
+                            <td class="text-right"
+                                th:text="'¥' + ${#numbers.formatDecimal(it.subtotal,1,2)}">¥18.00</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-block">提交订单</button>
+                <a th:href="@{/cart}" class="btn btn-outline btn-block" style="margin-top: 10px;">返回购物车</a>
+            </form>
+        </div>
+
+        <!-- 右：金额汇总 -->
+        <div class="card" style="position: sticky; top: 86px;">
+            <div class="card-title">💰 金额汇总</div>
+            <div class="flex-between mb-16">
+                <span class="muted">商品金额</span>
+                <span th:text="'¥' + ${#numbers.formatDecimal(total,1,2)}">¥0.00</span>
+            </div>
+            <div class="flex-between mb-16">
+                <span class="muted">配送费</span>
+                <span class="tag tag-green">免配送费</span>
+            </div>
+            <div class="total-bar" style="margin-top: 12px;">
+                <span class="fw-700">合计</span>
+                <span class="amount" th:text="'¥' + ${#numbers.formatDecimal(total,1,2)}">¥0.00</span>
+            </div>
+            <div class="alert alert-info mt-16" style="font-size: 13px;">
+                当前账户余额：<b th:text="'¥' + ${#numbers.formatDecimal(user.balance,1,2)}">¥0.00</b><br>
+                提交订单后进入支付页面，余额不足可先充值。
+            </div>
+            <a th:href="@{/me}" class="btn btn-outline btn-block btn-sm">去充值</a>
+        </div>
+
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

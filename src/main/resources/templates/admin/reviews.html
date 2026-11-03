@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('顾客评价')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('admin')}"></nav>
+
+<div class="container">
+
+    <div class="admin-grid">
+        <div th:replace="~{admin/admin-layout :: side('reviews')}"></div>
+
+        <div>
+            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 18px;">⭐ 顾客评价</h2>
+
+            <div class="card">
+                <div th:each="r : ${reviews}" style="padding: 14px 0; border-bottom: 1px solid var(--border);">
+                    <div class="flex-between">
+                        <span class="stars" th:text="${'★'.repeat(r.rating)}">★★★★★</span>
+                        <span class="meta-small"
+                              th:text="${#temporals.format(r.createdAt, 'yyyy-MM-dd HH:mm')}">时间</span>
+                    </div>
+                    <div style="margin-top: 6px;" th:text="${r.content}">评价内容</div>
+                    <div class="meta-small" th:text="'订单 ID：' + ${r.orderId}">订单</div>
+                </div>
+                <div class="empty" th:if="${reviews.isEmpty()}">
+                    <span class="emoji">💬</span>
+                    <div>还没有顾客评价</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

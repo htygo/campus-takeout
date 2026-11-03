@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('注册')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('')}"></nav>
+
+<div class="auth-wrap">
+    <div class="auth-card" style="max-width: 460px;">
+        <div class="auth-title">注册新账号 📝</div>
+        <div class="auth-sub">只需几秒，马上开吃</div>
+
+        <div th:replace="~{fragments/layout :: flash}"></div>
+
+        <form th:action="@{/register}" method="post">
+            <div class="form-group">
+                <label>用户名 <span style="color: var(--danger);">*</span></label>
+                <input type="text" name="username" class="form-control" required
+                       placeholder="登录时使用，不能重复">
+            </div>
+            <div class="form-group">
+                <label>密码 <span style="color: var(--danger);">*</span></label>
+                <input type="password" name="password" class="form-control" required
+                       minlength="6" placeholder="至少 6 位">
+            </div>
+            <div class="form-group">
+                <label>昵称</label>
+                <input type="text" name="nickname" class="form-control" placeholder="选填">
+            </div>
+            <div class="form-group">
+                <label>手机号</label>
+                <input type="text" name="phone" class="form-control" placeholder="选填，方便配送联系">
+            </div>
+            <div class="form-group">
+                <label>默认收货地址</label>
+                <input type="text" name="address" class="form-control"
+                       placeholder="选填，例如：东区学生公寓 3 号楼 201">
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg btn-block">注册</button>
+        </form>
+
+        <div class="text-center mt-16">
+            <span class="muted">已有账号？</span>
+            <a th:href="@{/login}" style="color: var(--primary); font-weight: 600;">去登录</a>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

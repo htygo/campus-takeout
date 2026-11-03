@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('编辑菜品')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('admin')}"></nav>
+
+<div class="container-sm">
+
+    <div class="card">
+        <div class="card-title">
+            <span th:text="${dish == null} ? '新增菜品' : '编辑菜品'">新增菜品</span>
+            <a th:href="@{/admin/dishes}" class="btn btn-outline btn-sm">返回列表</a>
+        </div>
+
+        <form th:action="@{/admin/dishes/save}" method="post">
+            <input type="hidden" name="id" th:if="${dish != null}" th:value="${dish.id}">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>菜品名称 <span style="color: var(--danger);">*</span></label>
+                    <input type="text" name="name" class="form-control" required
+                           th:value="${dish != null ? dish.name : ''}" placeholder="例如：红烧牛肉饭">
+                </div>
+                <div class="form-group">
+                    <label>所属分类 <span style="color: var(--danger);">*</span></label>
+                    <select name="categoryId" class="form-control" required>
+                        <option th:each="c : ${categories}"
+                                th:value="${c.id}"
+                                th:text="${c.name}"
+                                th:selected="${dish != null and dish.category.id == c.id}">分类</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>价格（元） <span style="color: var(--danger);">*</span></label>
+                    <input type="number" name="price" class="form-control" step="0.01" min="0.01" required
+                           th:value="${dish != null ? dish.price : ''}" placeholder="18.00">
+                </div>
+                <div class="form-group">
+                    <label>库存（份） <span style="color: var(--danger);">*</span></label>
+                    <input type="number" name="stock" class="form-control" min="0" required
+                           th:value="${dish != null ? dish.stock : 50}" placeholder="50">
+                </div>
+                <div class="form-group">
+                    <label>图标（emoji）</label>
+                    <input type="text" name="imageEmoji" class="form-control" maxlength="4"
+                           th:value="${dish != null ? dish.imageEmoji : '🍱'}" placeholder="🍜">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>菜品描述</label>
+                <textarea name="description" class="form-control" rows="2"
+                          placeholder="一句话介绍这道菜"
+                          th:text="${dish != null ? dish.description : ''}"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>可选口味</label>
+                <input type="text" name="taste" class="form-control"
+                       th:value="${dish != null ? dish.taste : ''}"
+                       placeholder="用英文逗号分隔，例如：不辣,微辣,中辣,特辣">
+                <div class="form-hint">留空表示该菜品没有口味选项。</div>
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-line">
+                    <input type="checkbox" name="onSale" value="true"
+                           th:checked="${dish == null or dish.onSale}">
+                    <span>立即上架（顾客可见）</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg"
+                    th:text="${dish == null} ? '创建菜品' : '保存修改'">保存</button>
+        </form>
+    </div>
+
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

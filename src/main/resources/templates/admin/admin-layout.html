@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- 管理后台侧边导航 -->
+<div class="admin-side" th:fragment="side(active)">
+    <a th:href="@{/admin}" th:classappend="${active == 'dashboard'} ? 'active' : ''">📊 数据看板</a>
+    <a th:href="@{/admin/dishes}" th:classappend="${active == 'dishes'} ? 'active' : ''">🍱 菜品管理</a>
+    <a th:href="@{/admin/categories}" th:classappend="${active == 'categories'} ? 'active' : ''">📂 分类管理</a>
+    <a th:href="@{/admin/orders}" th:classappend="${active == 'orders'} ? 'active' : ''">📋 订单处理</a>
+    <a th:href="@{/admin/reviews}" th:classappend="${active == 'reviews'} ? 'active' : ''">⭐ 顾客评价</a>
+    <hr style="border: none; border-top: 1px solid var(--border); margin: 10px 4px;">
+    <a th:href="@{/menu}">🏠 返回前台</a>
+</div>
+
+</body>
+</html>

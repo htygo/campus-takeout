@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('我的订单')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('orders')}"></nav>
+
+<div class="container">
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="card">
+        <div class="card-title">
+            <span>📋 我的订单</span>
+            <span class="muted" style="font-size: 14px; font-weight: 400;"
+                  th:text="'共 ' + ${#lists.size(orders)} + ' 笔'">共 0 笔</span>
+        </div>
+
+        <div th:if="${!orders.isEmpty()}">
+            <div th:each="o : ${orders}" class="card"
+                 style="margin-bottom: 14px; border: 1px solid var(--border); box-shadow: none;">
+                <div class="flex-between" style="flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <span class="fw-700" th:text="${o.orderNo}">单号</span>
+                        <span class="muted" style="font-size: 13px; margin-left: 10px;"
+                              th:text="${#temporals.format(o.createdAt, 'yyyy-MM-dd HH:mm')}">时间</span>
+                    </div>
+                    <span th:classappend="${o.status.name() == 'COMPLETED'} ? 'tag-green'
+                                        : (${o.status.name() == 'CANCELLED'} ? 'tag-gray'
+                                        : (${o.status.name() == 'PAID'} ? 'tag-blue' : 'tag-orange'))"
+                          class="tag" th:text="${o.status.label}">状态</span>
+                </div>
+
+                <div class="muted" style="margin: 8px 0 10px; font-size: 14px;">
+                    <span th:each="it, stat : ${o.items}">
+                        <span th:text="${it.dishName}">菜名</span> ×<span th:text="${it.quantity}">1</span>
+                        <span th:if="${!stat.last}">、</span>
+                    </span>
+                </div>
+
+                <div class="flex-between" style="flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        共 <b th:text="${o.totalQuantity}">1</b> 件，合计
+                        <span class="price" th:text="${#numbers.formatDecimal(o.totalAmount,1,2)}">0.00</span>
+                    </div>
+                    <a th:href="@{/orders/{id}/detail(id=${o.id})}" class="btn btn-outline btn-sm">查看详情</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="empty" th:if="${orders.isEmpty()}">
+            <span class="emoji">📋</span>
+            <div>还没有下过单</div>
+            <a th:href="@{/menu}" class="btn btn-primary mt-16">去点餐</a>
+        </div>
+    </div>
+
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

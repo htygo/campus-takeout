@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('点餐')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('menu')}"></nav>
+
+<div class="container">
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <!-- 欢迎横幅 -->
+    <div class="card" style="background: linear-gradient(120deg, #fff3ec, #ffe3d3); border: none;">
+        <div class="flex-between" style="flex-wrap: wrap; gap: 16px;">
+            <div>
+                <div style="font-size: 24px; font-weight: 800; margin-bottom: 6px;">
+                    今天想吃点什么？🍜
+                </div>
+                <div class="muted">校园内外精选美食，30 分钟送到宿舍楼下</div>
+            </div>
+            <form th:action="@{/menu}" method="get" class="flex-center gap-8">
+                <input type="text" name="keyword" class="form-control"
+                       th:value="${keyword}" placeholder="搜索菜品..."
+                       style="width: 220px;">
+                <button type="submit" class="btn btn-primary">搜索</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 热门推荐 -->
+    <div th:if="${hotDishes != null and !hotDishes.isEmpty() and (keyword == null or keyword.isEmpty())}">
+        <div class="card-title" style="font-size: 18px;">🔥 人气爆款</div>
+        <div class="dish-grid" style="margin-bottom: 24px;">
+            <a class="dish-card" th:each="d : ${hotDishes}"
+               th:href="@{/dish/{id}(id=${d.id})}"
+               style="position: relative;">
+                <span th:if="${d.sales > 200}"
+                      class="tag tag-orange"
+                      style="position:absolute;top:10px;right:10px;z-index:1;">热销</span>
+                <div class="dish-thumb" th:text="${d.imageEmoji}">🍜</div>
+                <div class="dish-body">
+                    <div class="dish-name" th:text="${d.name}">菜名</div>
+                    <div class="dish-meta" style="margin-bottom: 0;">
+                        <span class="price" th:text="${#numbers.formatDecimal(d.price,1,2)}">18.00</span>
+                        <span class="meta-small" th:text="'已售 ' + ${d.sales}">已售 100</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 分类过滤 -->
+    <div class="filter-bar">
+        <a th:href="@{/menu}" th:classappend="${activeCategoryId == null} ? 'active' : ''">全部</a>
+        <a th:each="c : ${categories}"
+           th:href="@{/menu(categoryId=${c.id})}"
+           th:classappend="${activeCategoryId != null and activeCategoryId == c.id} ? 'active' : ''"
+           th:text="${c.name}">分类</a>
+        <span class="muted" th:if="${keyword != null and !keyword.isEmpty()}"
+              style="margin-left:auto;">
+            搜索“<b th:text="${keyword}">关键词</b>”的结果
+            <a th:href="@{/menu}" style="color: var(--primary);">清除</a>
+        </span>
+    </div>
+
+    <!-- 菜品列表 -->
+    <div class="dish-grid" th:if="${!dishes.isEmpty()}">
+        <div class="dish-card" th:each="d : ${dishes}">
+            <a th:href="@{/dish/{id}(id=${d.id})}">
+                <div class="dish-thumb" th:text="${d.imageEmoji}">🍜</div>
+            </a>
+            <div class="dish-body">
+                <div class="dish-name">
+                    <a th:href="@{/dish/{id}(id=${d.id})}" th:text="${d.name}">菜名</a>
+                </div>
+                <div class="dish-desc" th:text="${d.description}">描述</div>
+
+                <div class="dish-meta">
+                    <span class="price" th:text="${#numbers.formatDecimal(d.price,1,2)}">18.00</span>
+                    <span>
+                        <span class="tag tag-green" th:if="${d.stock > 0}" th:text="'库存 ' + ${d.stock}">库存</span>
+                        <span class="tag tag-gray" th:if="${d.stock <= 0}">已售罄</span>
+                    </span>
+                </div>
+
+                <div class="meta-small mb-16"
+                     th:text="'已售 ' + ${d.sales} + ' 份 · ' + ${d.category.name}">已售</div>
+
+                <!-- 加入购物车表单 -->
+                <form th:action="@{/cart/add}" method="post"
+                      sec:authorize="hasRole('USER')"
+                      th:if="${d.stock > 0}"
+                      class="flex gap-8">
+                    <input type="hidden" name="dishId" th:value="${d.id}">
+                    <select name="taste" class="form-control" style="flex: 1; padding: 7px 10px;"
+                            th:if="${!d.tasteList.isEmpty()}" required>
+                        <option th:each="t : ${d.tasteList}" th:value="${t}" th:text="${t}">口味</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary" style="flex: 0 0 auto;">加入购物车</button>
+                </form>
+
+                <a sec:authorize="!isAuthenticated()"
+                   th:if="${d.stock > 0}"
+                   th:href="@{/login}"
+                   class="btn btn-outline btn-block">登录后下单</a>
+
+                <button sec:authorize="hasRole('USER')" th:if="${d.stock <= 0}"
+                        class="btn btn-outline btn-block" disabled>已售罄</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 空状态 -->
+    <div class="empty card" th:if="${dishes.isEmpty()}">
+        <span class="emoji">🍜️</span>
+        <div th:if="${keyword != null and !keyword.isEmpty()}">
+            没有找到与“<b th:text="${keyword}"></b>”相关的菜品
+        </div>
+        <div th:unless="${keyword != null and !keyword.isEmpty()}">
+            该分类下暂时没有上架的菜品
+        </div>
+        <a th:href="@{/menu}" class="btn btn-primary mt-16">看看全部菜品</a>
+    </div>
+
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

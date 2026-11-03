@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: campus-takeout
+
+  datasource:
+    # 数据库连接信息通过环境变量注入，避免把密码写进公开仓库
+    # 启动前请设置：DB_USERNAME（默认 root）、DB_PASSWORD（必填）
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:campus_takeout}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # 表结构已由 sql/schema.sql 建立，这里只做校验，避免自动改表
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+  thymeleaf:
+    cache: false
+    encoding: UTF-8
+
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+    session:
+      timeout: 30m
+
+logging:
+  level:
+    com.example.takeout: INFO

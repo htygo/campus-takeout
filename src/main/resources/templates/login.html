@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('登录')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('')}"></nav>
+
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-title">欢迎回来 👋</div>
+        <div class="auth-sub">登录后即可点餐、查看订单</div>
+
+        <div th:replace="~{fragments/layout :: flash}"></div>
+
+        <div class="alert alert-error" th:if="${param.error != null}">用户名或密码错误</div>
+        <div class="alert alert-info" th:if="${param.logout != null}">您已安全退出</div>
+
+        <form th:action="@{/login}" method="post">
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" name="username" class="form-control" required
+                       placeholder="请输入用户名" autofocus>
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" name="password" class="form-control" required
+                       placeholder="请输入密码">
+            </div>
+            <div class="checkbox-line mb-16">
+                <input type="checkbox" name="remember-me" id="remember">
+                <label for="remember" style="margin: 0; font-weight: 400;">记住我</label>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg btn-block">登录</button>
+        </form>
+
+        <div class="text-center mt-16">
+            <span class="muted">还没有账号？</span>
+            <a th:href="@{/register}" style="color: var(--primary); font-weight: 600;">立即注册</a>
+            <span class="muted" style="margin: 0 8px;">|</span>
+            <a th:href="@{/menu}" style="color: var(--primary); font-weight: 600;">先看看菜单</a>
+        </div>
+
+        <div class="alert alert-info mt-16" style="font-size: 13px;">
+            <div class="fw-700 mb-16" style="margin-bottom: 6px;">演示账号</div>
+            <div>顾客：<b>student</b> / 123456　　<b>tom</b> / 123456</div>
+            <div>管理员：<b>admin</b> / admin123</div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

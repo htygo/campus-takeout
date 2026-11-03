@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('订单详情')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('orders')}"></nav>
+
+<div class="container-sm">
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="card">
+        <div class="card-title">
+            <span>订单详情</span>
+            <span class="tag"
+                  th:classappend="${order.status.name() == 'COMPLETED'} ? 'tag-green'
+                                : (${order.status.name() == 'CANCELLED'} ? 'tag-gray'
+                                : (${order.status.name() == 'PAID'} ? 'tag-blue' : 'tag-orange'))"
+                  th:text="${order.status.label}">状态</span>
+        </div>
+
+        <!-- 状态进度条 -->
+        <div class="steps" th:if="${order.status.name() != 'CANCELLED'}">
+            <div class="step"
+                 th:classappend="${order.status.name() != 'CREATED'} ? 'done' : ''">
+                <div class="dot">1</div>提交订单
+            </div>
+            <div class="step"
+                 th:classappend="${order.status.name() == 'PAID' or order.status.name() == 'DELIVERING' or order.status.name() == 'COMPLETED'} ? 'done' : ''">
+                <div class="dot">2</div>支付成功
+            </div>
+            <div class="step"
+                 th:classappend="${order.status.name() == 'DELIVERING' or order.status.name() == 'COMPLETED'} ? 'done' : ''">
+                <div class="dot">3</div>配送中
+            </div>
+            <div class="step"
+                 th:classappend="${order.status.name() == 'COMPLETED'} ? 'done' : ''">
+                <div class="dot">4</div>已完成
+            </div>
+        </div>
+
+        <div class="alert alert-error" th:if="${order.status.name() == 'CANCELLED'}">
+            该订单已取消
+        </div>
+
+        <table class="table mt-16">
+            <tr>
+                <th style="width: 110px;">订单号</th>
+                <td th:text="${order.orderNo}">单号</td>
+            </tr>
+            <tr>
+                <th>下单时间</th>
+                <td th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm:ss')}">时间</td>
+            </tr>
+            <tr>
+                <th>收货地址</th>
+                <td th:text="${order.address}">地址</td>
+            </tr>
+            <tr>
+                <th>联系电话</th>
+                <td th:text="${order.phone}">电话</td>
+            </tr>
+            <tr th:if="${order.remark != null and !order.remark.isEmpty()}">
+                <th>备注</th>
+                <td th:text="${order.remark}">备注</td>
+            </tr>
+            <tr th:if="${order.paidAt != null}">
+                <th>支付时间</th>
+                <td th:text="${#temporals.format(order.paidAt, 'yyyy-MM-dd HH:mm:ss')}">时间</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- 商品明细 -->
+    <div class="card">
+        <div class="card-title">🍱 商品明细</div>
+        <table class="table">
+            <thead>
+            <tr>
+                <th>菜品</th>
+                <th>口味</th>
+                <th class="text-right">单价</th>
+                <th class="text-center">数量</th>
+                <th class="text-right">小计</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="it : ${order.items}">
+                <td class="fw-700" th:text="${it.dishName}">菜名</td>
+                <td>
+                    <span class="tag tag-orange" th:if="${it.taste != null}" th:text="${it.taste}">口味</span>
+                    <span class="muted" th:if="${it.taste == null}">-</span>
+                </td>
+                <td class="text-right" th:text="'¥' + ${#numbers.formatDecimal(it.unitPrice,1,2)}">¥0.00</td>
+                <td class="text-center" th:text="${it.quantity}">1</td>
+                <td class="text-right fw-700"
+                    th:text="'¥' + ${#numbers.formatDecimal(it.subtotal,1,2)}">¥0.00</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="total-bar">
+            <span class="muted" th:text="'共 ' + ${order.totalQuantity} + ' 件商品'">共 1 件</span>
+            <span>应付金额：<span class="amount"
+                    th:text="'¥' + ${#numbers.formatDecimal(order.totalAmount,1,2)}">¥0.00</span></span>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="card" th:if="${order.status.name() == 'CREATED'}">
+        <div class="flex-between" style="flex-wrap: wrap; gap: 12px;">
+            <div>
+                <div class="muted" style="font-size: 13px;">账户余额</div>
+                <div class="fw-700" style="font-size: 18px;"
+                     th:text="'¥' + ${#numbers.formatDecimal(user.balance,1,2)}">¥0.00</div>
+            </div>
+            <div class="flex gap-12">
+                <form th:action="@{/orders/{id}/cancel(id=${order.id})}" method="post"
+                      onsubmit="return confirm('确定取消该订单吗？')">
+                    <button type="submit" class="btn btn-outline">取消订单</button>
+                </form>
+                <form th:action="@{/orders/{id}/pay(id=${order.id})}" method="post">
+                    <button type="submit" class="btn btn-primary btn-lg">立即支付</button>
+                </form>
+            </div>
+        </div>
+        <div class="alert alert-info mt-16" style="margin-bottom: 0; font-size: 13px;"
+             th:if="${user.balance < order.totalAmount}">
+            余额不足，请先前往 <a th:href="@{/me}" style="color: var(--info); text-decoration: underline;">个人中心</a> 充值。
+        </div>
+    </div>
+
+    <!-- 评价 -->
+    <div class="card" th:if="${order.status.name() == 'COMPLETED' and !hasReviewed}">
+        <div class="card-title">⭐ 评价这一单</div>
+        <form th:action="@{/orders/{id}/review(id=${order.id})}" method="post">
+            <div class="form-group">
+                <label>评分</label>
+                <div class="flex-center gap-8" style="font-size: 26px;">
+                    <label th:each="i : ${#numbers.sequence(1,5)}"
+                           style="cursor: pointer; color: #d1d5db;">
+                        <input type="radio" name="rating" th:value="${i}" th:checked="${i == 5}"
+                               style="display: none;" class="rating-radio">
+                        <span class="star">★</span>
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>评价内容</label>
+                <textarea name="content" class="form-control" rows="3"
+                          placeholder="味道怎么样？送餐快不快？"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">提交评价</button>
+        </form>
+    </div>
+
+    <div class="alert alert-success" th:if="${order.status.name() == 'COMPLETED' and hasReviewed}">
+        ✅ 您已评价过该订单，感谢反馈！
+    </div>
+
+    <a th:href="@{/orders}" class="btn btn-outline">← 返回订单列表</a>
+    <a th:href="@{/menu}" class="btn btn-outline">继续点餐</a>
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+<script>
+    // 星级选择交互
+    document.querySelectorAll('.rating-radio').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const value = Number(radio.value);
+            document.querySelectorAll('.rating-radio').forEach(r => {
+                const star = r.parentElement.querySelector('.star');
+                star.style.color = Number(r.value) <= value ? '#f59e0b' : '#d1d5db';
+            });
+        });
+    });
+    // 初始化
+    (function () {
+        const checked = document.querySelector('.rating-radio:checked');
+        if (checked) {
+            const v = Number(checked.value);
+            document.querySelectorAll('.rating-radio').forEach(r => {
+                r.parentElement.querySelector('.star').style.color =
+                    Number(r.value) <= v ? '#f59e0b' : '#d1d5db';
+            });
+        }
+    })();
+</script>
+</body>
+</html>

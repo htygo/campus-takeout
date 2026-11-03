@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('数据看板')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('admin')}"></nav>
+
+<div class="container">
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="admin-grid">
+        <div th:replace="~{admin/admin-layout :: side('dashboard')}"></div>
+
+        <div>
+            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 18px;">📊 经营数据看板</h2>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">已完成营业额</div>
+                    <div class="stat-value accent"
+                         th:text="'¥' + ${#numbers.formatDecimal(revenue,1,2)}">¥0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">累计销售额（不含取消）</div>
+                    <div class="stat-value"
+                         th:text="'¥' + ${#numbers.formatDecimal(totalSales,1,2)}">¥0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">订单总数</div>
+                    <div class="stat-value" th:text="${orderCount}">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">在售菜品</div>
+                    <div class="stat-value" th:text="${dishCount}">0</div>
+                </div>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">待处理（已支付）</div>
+                    <div class="stat-value" style="color: var(--info);" th:text="${paidCount}">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">配送中</div>
+                    <div class="stat-value" style="color: var(--warning);" th:text="${deliveringCount}">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">已完成</div>
+                    <div class="stat-value" style="color: var(--success);" th:text="${completedCount}">0</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span>⏰ 最近订单</span>
+                    <a th:href="@{/admin/orders}" class="btn btn-outline btn-sm">查看全部</a>
+                </div>
+                <table class="table" th:if="${!recentOrders.isEmpty()}">
+                    <thead>
+                    <tr>
+                        <th>订单号</th>
+                        <th>金额</th>
+                        <th>状态</th>
+                        <th>下单时间</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="o : ${recentOrders}">
+                        <td th:text="${o.orderNo}">单号</td>
+                        <td class="fw-700" th:text="'¥' + ${#numbers.formatDecimal(o.totalAmount,1,2)}">¥0.00</td>
+                        <td>
+                            <span class="tag"
+                                  th:classappend="${o.status.name() == 'COMPLETED'} ? 'tag-green'
+                                                : (${o.status.name() == 'CANCELLED'} ? 'tag-gray'
+                                                : (${o.status.name() == 'PAID'} ? 'tag-blue'
+                                                : (${o.status.name() == 'DELIVERING'} ? 'tag-purple' : 'tag-orange')))"
+                                  th:text="${o.status.label}">状态</span>
+                        </td>
+                        <td class="muted" th:text="${#temporals.format(o.createdAt, 'MM-dd HH:mm')}">时间</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="muted" th:if="${recentOrders.isEmpty()}">暂无订单</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('菜品详情')}"></head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar('menu')}"></nav>
+
+<div class="container">
+
+    <div class="card">
+        <div class="detail-grid">
+            <div class="detail-thumb" th:text="${dish.imageEmoji}">🍜</div>
+
+            <div>
+                <div class="flex-center gap-12" style="margin-bottom: 8px;">
+                    <h1 style="font-size: 26px; font-weight: 800;" th:text="${dish.name}">菜名</h1>
+                    <span class="tag tag-orange" th:text="${dish.category.name}">分类</span>
+                    <span class="tag tag-gray" th:if="${!dish.onSale}">已下架</span>
+                </div>
+
+                <p class="muted" style="margin-bottom: 16px;" th:text="${dish.description}">描述</p>
+
+                <div class="flex-center gap-12" style="margin-bottom: 18px;">
+                    <span class="price" style="font-size: 28px;"
+                          th:text="${#numbers.formatDecimal(dish.price,1,2)}">18.00</span>
+                    <span class="meta-small" th:text="'已售 ' + ${dish.sales} + ' 份'">已售</span>
+                    <span class="meta-small" th:text="'剩余 ' + ${dish.stock} + ' 份'">库存</span>
+                </div>
+
+                <div th:if="${dish.tasteList != null and !dish.tasteList.isEmpty()}" style="margin-bottom: 18px;">
+                    <div class="fw-700 mb-16" style="margin-bottom: 8px;">可选口味</div>
+                    <div class="flex gap-8" style="flex-wrap: wrap;">
+                        <span class="tag tag-orange" th:each="t : ${dish.tasteList}" th:text="${t}">口味</span>
+                    </div>
+                </div>
+
+                <!-- 加入购物车 -->
+                <form th:action="@{/cart/add}" method="post"
+                      sec:authorize="hasRole('USER')"
+                      th:if="${dish.available}">
+                    <input type="hidden" name="dishId" th:value="${dish.id}">
+                    <div class="flex gap-12" style="align-items: flex-end; flex-wrap: wrap;">
+                        <div class="form-group" style="margin: 0;" th:if="${!dish.tasteList.isEmpty()}">
+                            <label>选择口味</label>
+                            <select name="taste" class="form-control" style="width: 160px;" required>
+                                <option th:each="t : ${dish.tasteList}" th:value="${t}" th:text="${t}">口味</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label>数量</label>
+                            <input type="number" name="quantity" class="form-control"
+                                   value="1" min="1" style="width: 110px;">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg">加入购物车</button>
+                    </div>
+                </form>
+
+                <div sec:authorize="!isAuthenticated()">
+                    <a th:href="@{/login}" class="btn btn-primary btn-lg">登录后下单</a>
+                </div>
+
+                <div sec:authorize="hasRole('USER')" th:if="${!dish.available}">
+                    <button class="btn btn-outline btn-lg" disabled>该菜品暂时售罄</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最新评价 -->
+    <div class="card">
+        <div class="card-title">💬 顾客评价</div>
+        <div th:if="${reviews != null and !reviews.isEmpty()}">
+            <div th:each="r : ${reviews}" style="padding: 12px 0; border-bottom: 1px solid var(--border);">
+                <div class="flex-between">
+                    <span class="stars">
+                        <span th:text="${'★'.repeat(r.rating)}">★★★★★</span>
+                    </span>
+                    <span class="meta-small" th:text="${#temporals.format(r.createdAt, 'yyyy-MM-dd HH:mm')}">时间</span>
+                </div>
+                <div style="margin-top: 4px;" th:text="${r.content}">评价内容</div>
+            </div>
+        </div>
+        <div class="muted" th:if="${reviews == null or reviews.isEmpty()}">还没有评价，快来抢第一单吧～</div>
+    </div>
+
+    <a th:href="@{/menu}" class="btn btn-outline">← 返回菜单</a>
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

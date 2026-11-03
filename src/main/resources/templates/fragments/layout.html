@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' - 校园外卖'">校园外卖</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+
+<!-- ================= 顶部导航 ================= -->
+<nav class="navbar" th:fragment="navbar(active)">
+    <div class="navbar-inner">
+        <a class="brand" th:href="@{/menu}">🍱 校园外卖</a>
+
+        <div class="nav-links">
+            <a th:href="@{/menu}"
+               th:classappend="${active == 'menu'} ? 'active' : ''">点餐</a>
+
+            <a sec:authorize="hasRole('USER')"
+               th:href="@{/cart}"
+               th:classappend="${active == 'cart'} ? 'active' : ''">
+                购物车<span class="badge" th:if="${cartCount != null and cartCount > 0}" th:text="${cartCount}">0</span>
+            </a>
+            <a sec:authorize="hasRole('USER')"
+               th:href="@{/orders}"
+               th:classappend="${active == 'orders'} ? 'active' : ''">我的订单</a>
+
+            <a sec:authorize="hasRole('ADMIN')"
+               th:href="@{/admin}"
+               th:classappend="${active == 'admin'} ? 'active' : ''">管理后台</a>
+        </div>
+
+        <div class="nav-right">
+            <th:block sec:authorize="isAuthenticated()">
+                <a th:href="@{/me}" class="nav-user">
+                    👤 <span sec:authentication="principal.username">用户</span>
+                </a>
+                <form th:action="@{/logout}" method="post" class="inline-form">
+                    <button type="submit" class="btn btn-outline btn-sm">退出</button>
+                </form>
+            </th:block>
+            <th:block sec:authorize="!isAuthenticated()">
+                <a th:href="@{/login}" class="btn btn-outline btn-sm">登录</a>
+                <a th:href="@{/register}" class="btn btn-primary btn-sm">注册</a>
+            </th:block>
+        </div>
+    </div>
+</nav>
+
+<div th:fragment="flash">
+    <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+</div>
+
+<div th:fragment="footer">
+    <div class="footer">
+        校园外卖点餐系统 · Spring Boot 课程大作业 · 演示项目
+    </div>
+</div>
+
+</body>
+</html>
