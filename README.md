@@ -34,15 +34,35 @@ mysql -u root -p < sql/data.sql
 
 或者用 MySQL Workbench / Navicat 打开这两个脚本依次执行。
 
-### 2. 修改数据库配置
+### 2. 配置数据库连接（使用环境变量）
 
-编辑 `src/main/resources/application.yml`，把用户名密码改成你自己的：
+为避免数据库密码进入代码仓库，`application.yml` 中的连接信息全部从**环境变量**读取：
 
-```yaml
-spring:
-  datasource:
-    username: root
-    password: 123456   # ← 改成你的 MySQL 密码
+| 环境变量 | 是否必填 | 默认值 | 说明 |
+|---|---|---|---|
+| `DB_PASSWORD` | **必填** | 无 | MySQL 密码 |
+| `DB_USERNAME` | 可选 | `root` | MySQL 用户名 |
+| `DB_HOST` | 可选 | `localhost` | 数据库主机 |
+| `DB_PORT` | 可选 | `3306` | 数据库端口 |
+| `DB_NAME` | 可选 | `campus_takeout` | 数据库名 |
+
+**Windows（PowerShell，永久生效）：**
+
+```powershell
+[Environment]::SetEnvironmentVariable('DB_PASSWORD','你的密码','User')
+# 设置后需重新打开终端
+```
+
+**临时生效（仅当前窗口）：**
+
+```powershell
+$env:DB_PASSWORD = '你的密码'
+```
+
+**Linux / macOS：**
+
+```bash
+export DB_PASSWORD='你的密码'
 ```
 
 ### 3. 启动
@@ -200,7 +220,7 @@ campus-takeout/
 **Q：启动报 `Table 'campus_takeout.xxx' doesn't exist`？**
 A：没有执行 `sql/schema.sql`。项目配置了 `ddl-auto: validate`，只校验不改表。
 
-**Q：启动报 `Access denied for user 'root'`？**
+**Q：启动报 `Could not resolve placeholder 'DB_PASSWORD'`？**`r`nA：没有设置环境变量 DB_PASSWORD。按第二节设置后重开终端。`r`n`r`n**Q：启动报 `Access denied for user 'root'`？**
 A：`application.yml` 里的数据库密码不对，改成你自己的。
 
 **Q：端口 8080 被占用？**
