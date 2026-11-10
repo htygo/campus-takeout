@@ -1,5 +1,10 @@
 # 🍱 校园外卖点餐系统（campus-takeout）
 
+[![CI](https://github.com/htygo/campus-takeout/actions/workflows/ci.yml/badge.svg)](https://github.com/htygo/campus-takeout/actions/workflows/ci.yml)
+![Java](https://img.shields.io/badge/Java-17-blue)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.16-green)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
+
 > Spring Boot + MySQL 课程大作业 —— 模仿「网上书店系统」实现的一个同类业务系统。
 
 ## 一、项目简介
