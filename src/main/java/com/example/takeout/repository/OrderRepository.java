@@ -1,12 +1,15 @@
 package com.example.takeout.repository;
 
 import com.example.takeout.entity.Order;
+import com.example.takeout.entity.User;
 import com.example.takeout.entity.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
@@ -30,4 +33,28 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     BigDecimal sumValidAmount();
 
     long countByUserId(Long userId);
+
+    // ---------- 并发 / 幂等控制 ----------
+
+    /**
+     * 原子地把订单从「待支付」改成「已支付」。
+     * 只有当前状态仍是 CREATED 时才会更新成功，返回受影响行数：
+     *  - 返回 1：本次抢到了这笔订单，可以继续后续操作；
+     *  - 返回 0：已被别的请求抢先支付（或不是待支付状态），应直接拒绝。
+     * 这是「先检查后更新」的原子替代，防止同一订单被并发重复支付。
+     */
+    @Modifying
+    @Query("update Order o set o.status = com.example.takeout.entity.OrderStatus.PAID, " +
+           "o.paidAt = :paidAt where o.id = :id and o.status = com.example.takeout.entity.OrderStatus.CREATED")
+    int markPaidIfCreated(@Param("id") Long id, @Param("paidAt") LocalDateTime paidAt);
+
+    /**
+     * 原子地扣减用户余额：仅当余额充足时才扣，返回受影响行数。
+     * 返回 0 表示余额不足（或用户不存在），应回滚。
+     * 把「查余额 → 判断 → 扣款」合成一条语句，避免并发下扣成负数。
+     */
+    @Modifying
+    @Query("update User u set u.balance = u.balance - :amount " +
+           "where u.id = :userId and u.balance >= :amount")
+    int deductBalanceIfEnough(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
 }

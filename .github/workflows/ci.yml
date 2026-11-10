@@ -91,6 +91,16 @@ jobs:
           DB_PASSWORD: cipassword
         run: ./test-flow.ps1
 
+      - name: 运行并发测试（test-concurrency.ps1）
+        shell: pwsh
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: campus_takeout
+          DB_USERNAME: root
+          DB_PASSWORD: cipassword
+        run: ./test-concurrency.ps1
+
       - name: 失败时输出应用日志
         if: failure()
         run: tail -n 100 app.log

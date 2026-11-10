@@ -136,7 +136,14 @@ public class OrderService {
                     + "，订单需 ¥" + order.getTotalAmount() + "，请先充值");
         }
 
-        // 逐条扣减库存，任何一条失败都抛异常回滚
+        // ① 原子抢占：把「待支付 → 已支付」做成一条条件更新，谁先执行成功谁就拿到这笔订单。
+        //    并发场景下只有 1 个请求会返回 1，其余返回 0，直接拒绝，避免重复支付。
+        int claimed = orderRepository.markPaidIfCreated(orderId, LocalDateTime.now());
+        if (claimed == 0) {
+            throw new BusinessException("该订单已被支付或状态已变更，请刷新后重试");
+        }
+
+        // ② 逐条扣减库存，任何一条失败都抛异常回滚（同时会把上面改的状态一起回滚）
         for (OrderItem item : order.getItems()) {
             int affected = dishRepository.deductStock(item.getDishId(), item.getQuantity());
             if (affected == 0) {
@@ -144,12 +151,14 @@ public class OrderService {
             }
         }
 
-        user.setBalance(user.getBalance().subtract(order.getTotalAmount()));
-        userRepository.save(user);
+        // ③ 原子扣款：仅当余额充足时才扣，并返回受影响行数，防止并发扣成负数 / 多扣。
+        int deducted = orderRepository.deductBalanceIfEnough(userId, order.getTotalAmount());
+        if (deducted == 0) {
+            throw new BusinessException("余额不足，支付失败");
+        }
 
-        order.setStatus(OrderStatus.PAID);
-        order.setPaidAt(LocalDateTime.now());
-        return orderRepository.save(order);
+        // 状态已在 ① 中通过条件更新落库，这里重新读回最新快照返回给上层
+        return orderRepository.findById(orderId).orElseThrow(() -> new BusinessException("订单不存在"));
     }
 
     /** 用户取消订单（仅待支付可取消） */

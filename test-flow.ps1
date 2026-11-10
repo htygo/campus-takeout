@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Net.Http
 
 $base = 'http://localhost:8080'
@@ -7,7 +7,7 @@ $results = New-Object System.Collections.ArrayList
 # 跨平台：测试直连数据库时用 mysql 客户端。可用环境变量 MYSQL_BIN 覆盖。
 # 本地 Windows 默认指向已安装的 MySQL 8.0；CI(Linux) 走 PATH 里的 mysql。
 $mysql = if ($env:MYSQL_BIN) { $env:MYSQL_BIN }
-         elseif ($IsWindows) { 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe' }
+         elseif ($env:OS -eq 'Windows_NT') { 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe' }
          else { 'mysql' }
 # 数据库连接参数从环境变量读取（CI 与本地都可覆盖）
 $dbUser = if ($env:DB_USERNAME) { $env:DB_USERNAME } else { 'root' }
