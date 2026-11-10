@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Net.Http
 
 $base = 'http://localhost:8080'
@@ -126,3 +126,5 @@ Write-Host "`n===== 汇总 =====" -ForegroundColor Cyan
 $pass = ($results | Where-Object Result -eq 'PASS').Count
 $fail = ($results | Where-Object Result -eq 'FAIL').Count
 Write-Host ("通过 {0} 项 / 失败 {1} 项" -f $pass, $fail) -ForegroundColor $(if ($fail -eq 0) { 'Green' } else { 'Red' })
+# CI 用：有失败项时以非零退出码让流水线变红
+if ($fail -gt 0) { exit 1 }

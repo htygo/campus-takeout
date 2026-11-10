@@ -1,0 +1,84 @@
+name: CI
+
+# 触发条件：向 main 分支推送、或对仓库发起 PR 时自动运行
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: 编译与接口测试
+    runs-on: ubuntu-latest
+
+    # 用一个干净的 MySQL 8 作为测试数据库
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: cipassword
+          MYSQL_DATABASE: campus_takeout
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pcipassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: 等待 MySQL 就绪
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -uroot -pcipassword --silent; then
+              echo "MySQL 已就绪"; break
+            fi
+            echo "等待 MySQL... ($i)"; sleep 3
+          done
+
+      - name: 初始化数据库（建表 + 初始数据）
+        run: |
+          mysql -h 127.0.0.1 -uroot -pcipassword campus_takeout < sql/schema.sql
+          mysql -h 127.0.0.1 -uroot -pcipassword campus_takeout < sql/data.sql
+
+      - name: 编译并打包（跳过测试，做出可运行 jar）
+        run: mvn -B -DskipTests package
+
+      - name: 启动应用
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: campus_takeout
+          DB_USERNAME: root
+          DB_PASSWORD: cipassword
+        run: |
+          nohup java -jar target/campus-takeout-1.0.0.jar > app.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:8080/menu > /dev/null; then
+              echo "应用启动成功"; break
+            fi
+            echo "等待应用启动... ($i)"; sleep 3
+          done
+
+      - name: 运行接口测试（test-api.ps1）
+        shell: pwsh
+        run: ./test-api.ps1
+
+      - name: 运行业务流测试（test-flow.ps1）
+        shell: pwsh
+        run: ./test-flow.ps1
+
+      - name: 失败时输出应用日志
+        if: failure()
+        run: tail -n 100 app.log
