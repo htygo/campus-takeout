@@ -113,6 +113,30 @@ function Pay-AllConcurrent($requests) {
     return $out
 }
 
+function Cancel-AllConcurrent($adminClient, $orderIds) {
+    $pending = @()
+    foreach ($oid in $orderIds) {
+        $page = Get-Page $adminClient '/admin/orders'
+        $tok = Tok $page.Body
+        $pairs = New-Object 'System.Collections.Generic.List[System.Collections.Generic.KeyValuePair[string,string]]'
+        $pairs.Add([System.Collections.Generic.KeyValuePair[string,string]]::new('_csrf', [string]$tok))
+        $content = [System.Net.Http.FormUrlEncodedContent]::new($pairs)
+        $task = $adminClient.PostAsync("/admin/orders/$oid/cancel", $content)
+        $pending += $task
+    }
+    $out = @()
+    foreach ($t in $pending) {
+        try {
+            $resp = $t.GetAwaiter().GetResult()
+            $body = $resp.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+            $ok = ([int]$resp.StatusCode -ge 200 -and [int]$resp.StatusCode -lt 400) -and ($body -notmatch '已完成或已取消|无法重复取消|不能取消')
+            $out += [pscustomobject]@{ Ok = $ok; Status = [int]$resp.StatusCode }
+        } catch {
+            $out += [pscustomobject]@{ Ok = $false; Status = -1 }
+        }
+    }
+    return $out
+}
 # 用某一账号把「指定菜品 × 数量」加入购物车并提交订单，返回订单号
 function Make-Order($client, $csrf, $dishId, $qty, $taste) {
     [void](Post-Form $client '/cart/clear' @{ '_csrf' = $csrf })
@@ -250,6 +274,58 @@ Check '库存 1 份，10 个并发抢购只成功 1 次' ($paySuccess3 -eq 1) "�
 Check '最终库存为 0（不会被扣成负数）' ($stock3 -eq 0) "库存 $stock3"
 Check '销量正好增加 1' ($sales3 -eq 1) "销量 $sales3"
 
+# ------------------------------------------------------------
+# 场景四：管理端并发取消同一笔已支付订单（防重复退款 / 重复回补库存）
+# ------------------------------------------------------------
+Write-Host "`n===== 场景四：管理员并发取消同一笔已支付订单 6 次 =====" -ForegroundColor Cyan
+[void](Sql "UPDATE dish SET stock=20, sales=0 WHERE id=$testDishId")
+$s4 = $sessions['student']
+$o4 = Make-Order $s4.Client $s4.Tok $testDishId 2 ('取消并发' + (Get-Random))
+$d4 = Get-Page $s4.Client "/orders/$o4/detail"
+[void](Post-Form $s4.Client "/orders/$o4/pay" @{ '_csrf' = (Tok $d4.Body) })
+$statusPaid = Sql "SELECT status FROM orders WHERE id=$o4"
+$balBefore4 = [decimal](Sql "SELECT balance FROM app_user WHERE username='student'")
+$stockBefore4 = [int](Sql "SELECT stock FROM dish WHERE id=$testDishId")
+
+$cancelReqs = @()
+for ($i4 = 0; $i4 -lt 6; $i4++) { $cancelReqs += $o4 }
+$res4 = Cancel-AllConcurrent $admin.Client $cancelReqs
+$cancelSuccess = @($res4 | Where-Object { $_.Ok -eq $true }).Count
+
+$balAfter4 = [decimal](Sql "SELECT balance FROM app_user WHERE username='student'")
+$stockAfter4 = [int](Sql "SELECT stock FROM dish WHERE id=$testDishId")
+$statusFinal4 = Sql "SELECT status FROM orders WHERE id=$o4"
+
+Write-Host "  订单初始状态=$statusPaid；6 次并发取消返回成功 $cancelSuccess 次" -ForegroundColor Gray
+Write-Host "  余额：$balBefore4 -> $balAfter4（应只退回一次订单金额）" -ForegroundColor Yellow
+Write-Host "  库存：$stockBefore4 -> $stockAfter4（应只回补一次 2 份，即 +2）" -ForegroundColor Yellow
+Check '订单已支付后再并发取消' ($statusPaid -eq 'PAID') "状态 $statusPaid"
+Check '并发取消：只有 1 次算成功' ($cancelSuccess -eq 1) "6 次并发取消中成功 $cancelSuccess 次"
+Check '并发取消：余额只退回 1 次' ($balAfter4 -eq ($balBefore4 + 40.00)) "余额 $balBefore4 -> $balAfter4（应 +40 一次）"
+Check '并发取消：库存只回补 1 次(2份)' ($stockAfter4 -eq ($stockBefore4 + 2)) "库存 $stockBefore4 -> $stockAfter4（应 +2）"
+Check '并发取消：订单最终为已取消' ($statusFinal4 -eq 'CANCELLED') "状态 $statusFinal4"
+
+# ------------------------------------------------------------
+# 场景五：越权访问（IDOR）—— 用户 A 不能查看/支付用户 B 的订单
+# ------------------------------------------------------------
+Write-Host "`n===== 场景五：越权访问别人的订单 =====" -ForegroundColor Cyan
+[void](Sql "UPDATE dish SET stock=20, sales=0 WHERE id=$testDishId")
+$sTom = $sessions['tom']
+$sStu = $sessions['student']
+$oB = Make-Order $sTom.Client $sTom.Tok $testDishId 1 ('IDOR-belongtom' + (Get-Random))
+Check 'tom 创建了订单' ($oB -gt 0) "订单 id=$oB（属于 tom）"
+
+$r5 = Get-Page $sStu.Client "/orders/$oB/detail"
+$bodyShows = ($r5.Body -match '无权查看该订单') -or ($r5.Status -ge 400)
+Write-Host "  student 访问 tom 的订单 /orders/$oB/detail -> HTTP $($r5.Status)" -ForegroundColor Gray
+Check '越权访问别人订单被拦截' ($bodyShows) "HTTP $($r5.Status)；拦截=$bodyShows"
+
+$payTok5 = Tok (Get-Page $sStu.Client '/menu').Body
+$payCross = Post-Form $sStu.Client "/orders/$oB/pay" @{ '_csrf' = $payTok5 }
+$crossBlocked = ($payCross.Body -match '无权|不存在|无权限') -or ($payCross.Status -ge 400)
+Write-Host "  student 尝试支付 tom 的订单 -> HTTP $($payCross.Status)" -ForegroundColor Gray
+Check '越权支付别人订单被拦截' ($crossBlocked) "HTTP $($payCross.Status)"
+Check '越权攻击后 tom 的订单仍待支付' ((Sql "SELECT status FROM orders WHERE id=$oB") -eq 'CREATED') "状态 $(Sql "SELECT status FROM orders WHERE id=$oB")"
 # 复原测试菜品状态（不影响后续）
 [void](Sql "UPDATE dish SET stock=20, sales=0 WHERE id=$testDishId")
 

@@ -168,8 +168,11 @@ public class OrderService {
         if (order.getStatus() != OrderStatus.CREATED) {
             throw new BusinessException("只能取消「待支付」的订单");
         }
-        order.setStatus(OrderStatus.CANCELLED);
-        orderRepository.save(order);
+        // 原子条件更新：只有仍是「待支付」时才取消，避免与支付并发时状态互相覆盖
+        int affected = orderRepository.markCancelledIfCreated(orderId);
+        if (affected == 0) {
+            throw new BusinessException("该订单状态已变更（可能已支付），无法取消");
+        }
     }
 
     // ---------- 管理端订单流转 ----------
@@ -198,8 +201,17 @@ public class OrderService {
         if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.CANCELLED) {
             throw new BusinessException("已完成或已取消的订单不能取消");
         }
-        // 已支付的订单：退款 + 回补库存
-        if (order.getStatus() != OrderStatus.CREATED) {
+        boolean wasPaid = order.getStatus() != OrderStatus.CREATED;
+
+        // ① 原子抢占取消权：只有仍是「未终结」状态才能取消成功。
+        //    并发/重复点击时只有 1 个请求返回 1，其余返回 0 直接拒绝，避免重复退款、重复回补库存。
+        int claimed = orderRepository.markCancelledIfNotFinal(orderId);
+        if (claimed == 0) {
+            throw new BusinessException("该订单已完成或已取消，无法重复取消");
+        }
+
+        // ② 确认抢到取消权后，才执行退款 + 回补库存（已支付订单）
+        if (wasPaid) {
             User user = userRepository.findById(order.getUserId())
                     .orElseThrow(() -> new BusinessException("下单用户不存在"));
             user.setBalance(user.getBalance().add(order.getTotalAmount()));
@@ -209,8 +221,6 @@ public class OrderService {
                 dishRepository.restoreStock(item.getDishId(), item.getQuantity());
             }
         }
-        order.setStatus(OrderStatus.CANCELLED);
-        orderRepository.save(order);
     }
 
     private String generateOrderNo() {

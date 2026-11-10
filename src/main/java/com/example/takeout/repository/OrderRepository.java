@@ -57,4 +57,25 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("update User u set u.balance = u.balance - :amount " +
            "where u.id = :userId and u.balance >= :amount")
     int deductBalanceIfEnough(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
+
+    /**
+     * 原子地把「待支付」订单取消。仅当当前状态仍是 CREATED 时更新成功。
+     * 用于用户自助取消，避免与支付并发时状态互相覆盖。
+     */
+    @Modifying
+    @Query("update Order o set o.status = com.example.takeout.entity.OrderStatus.CANCELLED " +
+           "where o.id = :id and o.status = com.example.takeout.entity.OrderStatus.CREATED")
+    int markCancelledIfCreated(@Param("id") Long id);
+
+    /**
+     * 原子地把「未终结」订单取消：只有 status 属于 CREATED / PAID / DELIVERING 时才更新成功。
+     * 用于管理端取消，必须在执行退款/回补库存之前调用：
+     *  - 返回 1：本次抢到这笔取消操作，继续退款、回补库存；
+     *  - 返回 0：订单已完成或已取消（被别的请求抢先），应直接拒绝，避免重复退款。
+     */
+    @Modifying
+    @Query("update Order o set o.status = com.example.takeout.entity.OrderStatus.CANCELLED " +
+           "where o.id = :id and o.status in (com.example.takeout.entity.OrderStatus.CREATED, " +
+           "com.example.takeout.entity.OrderStatus.PAID, com.example.takeout.entity.OrderStatus.DELIVERING)")
+    int markCancelledIfNotFinal(@Param("id") Long id);
 }
