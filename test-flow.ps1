@@ -3,7 +3,18 @@ Add-Type -AssemblyName System.Net.Http
 
 $base = 'http://localhost:8080'
 $results = New-Object System.Collections.ArrayList
-$mysql = 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe'
+
+# 跨平台：测试直连数据库时用 mysql 客户端。可用环境变量 MYSQL_BIN 覆盖。
+# 本地 Windows 默认指向已安装的 MySQL 8.0；CI(Linux) 走 PATH 里的 mysql。
+$mysql = if ($env:MYSQL_BIN) { $env:MYSQL_BIN }
+         elseif ($IsWindows) { 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe' }
+         else { 'mysql' }
+# 数据库连接参数从环境变量读取（CI 与本地都可覆盖）
+$dbUser = if ($env:DB_USERNAME) { $env:DB_USERNAME } else { 'root' }
+$dbPass = if ($env:DB_PASSWORD) { $env:DB_PASSWORD } else { '123456' }
+$dbHost = if ($env:DB_HOST) { $env:DB_HOST } else { '127.0.0.1' }
+$dbPort = if ($env:DB_PORT) { $env:DB_PORT } else { '3306' }
+$dbName = if ($env:DB_NAME) { $env:DB_NAME } else { 'campus_takeout' }
 
 function Check($name, $condition, $detail) {
     $status = if ($condition) { 'PASS' } else { 'FAIL' }
@@ -13,14 +24,23 @@ function Check($name, $condition, $detail) {
 }
 
 function Sql($query) {
+    # 直接启动 mysql 客户端（不经 cmd / shell），Windows 与 Linux 通用。
+    # 每个参数单独加引号拼进 Arguments，PS5.1 与 PS7 都能用且能正确转义空格。
     $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = 'cmd.exe'
-    $psi.Arguments = '/c ""' + $mysql + '" -u root -p123456 -N -B --default-character-set=utf8mb4 -D campus_takeout -e "' + $query + '" 2>NUL"'
+    $psi.FileName = $mysql
+    $argList = @(
+        "--host=$dbHost", "--port=$dbPort", "--user=$dbUser", "--password=$dbPass",
+        '--skip-column-names', '--batch', '--default-character-set=utf8mb4',
+        "--database=$dbName", "--execute=$query"
+    )
+    $psi.Arguments = ($argList | ForEach-Object { '"' + ($_ -replace '"', '\"') + '"' }) -join ' '
     $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
     $psi.UseShellExecute = $false
     $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
     $p = [System.Diagnostics.Process]::Start($psi)
     $out = $p.StandardOutput.ReadToEnd()
+    [void]$p.StandardError.ReadToEnd()
     $p.WaitForExit()
     return $out.Trim()
 }
