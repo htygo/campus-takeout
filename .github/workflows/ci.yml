@@ -73,10 +73,22 @@ jobs:
 
       - name: 运行接口测试（test-api.ps1）
         shell: pwsh
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: campus_takeout
+          DB_USERNAME: root
+          DB_PASSWORD: cipassword
         run: ./test-api.ps1
 
       - name: 运行业务流测试（test-flow.ps1）
         shell: pwsh
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: campus_takeout
+          DB_USERNAME: root
+          DB_PASSWORD: cipassword
         run: ./test-flow.ps1
 
       - name: 失败时输出应用日志
